@@ -54,13 +54,16 @@ class HodgeLaplacians:
         return tuple(filter(lambda face: len(face) == n+1, self.face_set))
 
     def _faces(self, simplices):
+        """This function used to return a set but this had the annoying consequence of 
+        defining the operators with a different ordering of the nodes thant the natural
+        one when the nodes are named by integers. Returning a sorted list solves the problem """
         faceset = set()
         for simplex in simplices:
             numnodes = len(simplex)
             for r in range(numnodes, 0, -1):
                 for face in combinations(simplex, r):
                     faceset.add(tuple(sorted(face)))
-        return faceset
+        return sorted(faceset)
 
     def boundary_operator(self, i):
         source_simplices = self.n_faces(i)
