@@ -149,24 +149,30 @@ class HodgeLaplacians:
         Ricci = Ricci.diagonal()
         return Ricci
 
-    def getHodgeSpectrum(self, d, k, around_point=0.01):
+    def getHodgeSpectrum(self, d, k=1, around_point=0.01, dense=False):
         """Obtain k eigenvalues and eigenvectors of d-Hodge Laplacian.
-        Eigenvalues and eigenvectors are computed sufficently fast
+        Eigenvalues and eigenvectors are computed sufficently fast 
         using Shift-Invert mode of the ARPACK algorithm in SciPy.
         More info: https://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html"""
         L = self.getHodgeLaplacian(d)
-        vals, vecs = eigsh(L, k=k, sigma=around_point, which='LM')
-        vecs = vecs.transpose()
+        if dense == False:
+            vals, vecs = eigsh(L, k=k, sigma=around_point, which='LM')
+        elif dense == True:
+            L = L.toarray()
+            vals, vecs = np.linalg.eigh(L)
         return vals, vecs
-
-    def getBochnerSpectrum(self, d, k, around_point=0.01):
+  
+    def getBochnerSpectrum(self, d, k=1, around_point=0.01, dense=False):
         """Obtain k eigenvalues and eigenvectors of d-Hodge Laplacian.
-        Eigenvalues and eigenvectors are computed sufficently fast
+        Eigenvalues and eigenvectors are computed sufficently fast 
         using Shift-Invert mode of the ARPACK algorithm in SciPy.
         More info: https://docs.scipy.org/doc/scipy/reference/tutorial/arpack.html"""
         LB = self.getBochnerLaplacian(d)
-        vals, vecs = eigsh(LB, k=k, sigma=around_point, which='LM')
-        vecs = vecs.transpose()
+        if dense == False:
+            vals, vecs = eigsh(LB, k=k, sigma=around_point, which='LM')
+        elif dense == True:
+            LB = LB.toarray()
+            vals, vecs = np.linalg.eigh(LB)
         return vals, vecs
 
     def randomWalkDistribution(self, d, chain_distribution, time):
