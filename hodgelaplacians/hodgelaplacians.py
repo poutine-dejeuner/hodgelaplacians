@@ -17,8 +17,9 @@ from itertools import combinations
 class HodgeLaplacians:
     """Class for construction of Hodge and Bochner Laplacians from either collection of simplices
     or simplicial tree."""
-    def __init__(self, simplices, maxdimension=2, mode='normal'):
+    def __init__(self, simplices, oriented, maxdimension=2, mode='normal'):
         self.mode = mode
+        self.oriented = oriented
 
         if mode == 'normal':
             self.import_simplices(simplices=simplices)
@@ -47,7 +48,10 @@ class HodgeLaplacians:
 
 
     def import_simplices(self, simplices=[]):
-        self.simplices = tuple(map(lambda simplex: tuple(sorted(simplex)), simplices))
+        if self.oriented == True:
+            self.simplices = tuple(map(lambda simplex: tuple(simplex), simplices))
+        elif self.oriented == False:
+            self.simplices = tuple(map(lambda simplex: tuple(sorted(simplex)), simplices))
         self.face_set = self._faces(self.simplices)
 
     def n_faces(self, n):
@@ -58,11 +62,18 @@ class HodgeLaplacians:
         defining the operators with a different ordering of the nodes thant the natural
         one when the nodes are named by integers. Returning a sorted list solves the problem """
         faceset = set()
-        for simplex in simplices:
-            numnodes = len(simplex)
-            for r in range(numnodes, 0, -1):
-                for face in combinations(simplex, r):
-                    faceset.add(tuple(sorted(face)))
+        if self.oriented == True:
+            for simplex in simplices:
+                numnodes = len(simplex)
+                for r in range(numnodes, 0, -1):
+                    for face in combinations(simplex, r):
+                        faceset.add(tuple(face))
+        elif self.oriented == False:
+            for simplex in simplices:
+                numnodes = len(simplex)
+                for r in range(numnodes, 0, -1):
+                    for face in combinations(simplex, r):
+                        faceset.add(tuple(sorted(face)))                                         
         return sorted(faceset)
 
     def boundary_operator(self, i):
@@ -83,7 +94,7 @@ class HodgeLaplacians:
                            dtype=np.float64)
             for source_simplex in source_simplices:
                 for a in range(len(source_simplex)):
-                    target_simplex = source_simplex[:a]+source_simplex[(a+1):]
+                    target_simplex = source_simplex[:a]+source_simplex[(a+1):]  #constructs a simplex with the coordinate a missing
                     i = target_simplices_dict[target_simplex]
                     j = source_simplices_dict[source_simplex]
                     S[i, j] = -1 if a % 2 == 1 else 1   # S[i, j] = (-1)**a
