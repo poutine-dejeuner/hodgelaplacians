@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import eigs, eigsh
 from scipy.sparse.linalg import norm
 from scipy.sparse import diags
+from sympy.combinatorics.permutations import Permutation
 
 import numpy as np
 from scipy.linalg import expm
@@ -17,9 +18,10 @@ from itertools import combinations
 class HodgeLaplacians:
     """Class for construction of Hodge and Bochner Laplacians from either collection of simplices
     or simplicial tree."""
-    def __init__(self, simplices, oriented, maxdimension=2, mode='normal'):
+    def __init__(self, simplices, oriented=True, maxdimension=2, mode='normal'):
         self.mode = mode
         self.oriented = oriented
+        self.simplices = []
 
         if mode == 'normal':
             self.import_simplices(simplices=simplices)
@@ -62,19 +64,12 @@ class HodgeLaplacians:
         defining the operators with a different ordering of the nodes thant the natural
         one when the nodes are named by integers. Returning a sorted list solves the problem """
         faceset = set()
-        if self.oriented == True:
-            for simplex in simplices:
-                numnodes = len(simplex)
-                for r in range(numnodes, 0, -1):
-                    for face in combinations(simplex, r):
+        for simplex in simplices:
+            numnodes = len(simplex)
+            for r in range(numnodes, 0, -1):
+                for face in combinations(simplex, r):
                         faceset.add(tuple(face))
-        elif self.oriented == False:
-            for simplex in simplices:
-                numnodes = len(simplex)
-                for r in range(numnodes, 0, -1):
-                    for face in combinations(simplex, r):
-                        faceset.add(tuple(sorted(face)))                                         
-        return sorted(faceset)
+        return tuple(sorted(faceset))
 
     def boundary_operator(self, i):
         source_simplices = self.n_faces(i)
@@ -88,16 +83,20 @@ class HodgeLaplacians:
                                      j for j in range(len(source_simplices))}
             target_simplices_dict = {target_simplices[i]:
                                      i for i in range(len(target_simplices))}
+            sorted_target_simplices = {tuple(sorted(simplex)):simplex for simplex in target_simplices}
 
             S = dok_matrix((len(target_simplices),
                             len(source_simplices)),
                            dtype=np.float64)
-            for source_simplex in source_simplices:
-                for a in range(len(source_simplex)):
-                    target_simplex = source_simplex[:a]+source_simplex[(a+1):]  #constructs a simplex with the coordinate a missing
-                    i = target_simplices_dict[target_simplex]
-                    j = source_simplices_dict[source_simplex]
-                    S[i, j] = -1 if a % 2 == 1 else 1   # S[i, j] = (-1)**a
+            for oriented_source in source_simplices:
+                for a in range(len(oriented_source)):
+                    oriented_face = oriented_source[:a]+oriented_source[(a+1):]  #constructs a simplex with the coordinate a missing
+                    sorted_face = tuple(sorted(oriented_face))
+                    oriented_target = sorted_target_simplices[sorted_face]
+                    i = target_simplices_dict[oriented_target]
+                    j = source_simplices_dict[oriented_source]
+                    #S[i, j] = -1 if a % 2 == 1 else 1   # S[i, j] = (-1)**a
+                    S[i, j] = (-1)**(orientation(oriented_face) + orientation(oriented_target) + a)
         return S
 
     @lru_cache(maxsize=32)
@@ -203,3 +202,7 @@ class HodgeLaplacians:
         https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5324709/"""
         pass
 
+def orientation(ordered_nodes):
+    sorted_indices = [ordered_nodes.index(i) for i in sorted(ordered_nodes)]
+    orientation = Permutation(sorted_indices).parity()
+    return orientation
