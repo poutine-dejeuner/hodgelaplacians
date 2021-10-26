@@ -6,6 +6,14 @@ assert hl.face_set == ((1,), (1, 2), (1, 2, 3), (1, 3), (1, 3, 4), (1, 4), (2,),
 
 B = hl.getBoundaryOperator(2).todense()
 assert (B == np.matrix([[1, 0], [-1, 1], [0,-1], [1, 0], [0, 1]])).all()
+B = hl.getBoundaryOperator(1).todense()
+print(hl.n_faces(2))
+print(hl.n_faces(1))
+print(hl.n_faces(0))
+assert (B == np.matrix([[-1,-1,-1,0,0],[1,0,0,-1,0],[0,1,0,1,-1],[0,0,1,0,1]])).all()
+L = hl.getHodgeLaplacian(1).todense()
+print(L)
+assert (L == np.matrix())
 
 L = hl.getHodgeLaplacian(2).todense()
 assert (L == np.matrix([[3,-1],[-1,3]])).all()
