@@ -126,6 +126,38 @@ class HodgeLaplacians:
             raise ValueError(f"d should be not greater than {self.maxdim} (maximal dimension simplices)")
         return L
 
+    @lru_cache(maxsize=32)
+    def getHodgeLaplacianUp(self,d):
+        if d == 0:
+            B_next = self.getBoundaryOperator(d+1)
+            Bt_next = B_next.transpose()
+            L = B_next.dot(Bt_next)
+        elif d < self.maxdim:
+            B_next = self.getBoundaryOperator(d+1)
+            Bt_next = B_next.transpose()
+            L = B_next.dot(Bt_next)
+        elif d == self.maxdim:
+            raise ValueError(f"The upper Laplacian in dimension {self.maxdim} is trivial")
+        else:
+            raise ValueError(f"d should be not greater than {self.maxdim} (maximal dimension simplices)")
+        return L 
+
+    @lru_cache(maxsize=32)
+    def getHodgeLaplacianDown(self,d):
+        if d == 0:
+            raise ValueError(f"The lower Laplacian in dimension 0 is trivial")
+        elif d < self.maxdim:
+            B = self.getBoundaryOperator(d)
+            Bt = B.transpose()
+            L = Bt.dot(B)
+        elif d == self.maxdim:
+            B = self.getBoundaryOperator(d)
+            Bt = B.transpose()
+            L = Bt.dot(B)
+        else:
+            raise ValueError(f"d should be not greater than {self.maxdim} (maximal dimension simplices)")
+        return L
+
     def getBochnerLaplacian(self,d):
         LB = self.getHodgeLaplacian(d)
         LB = LB - diags(LB.diagonal())
