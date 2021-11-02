@@ -1,3 +1,3 @@
 name = "hodgelaplacians"
 
-from .hodgelaplacians import HodgeLaplacians
+from .hodgelaplacians import HodgeLaplacians, WeightedHodgeLaplacians

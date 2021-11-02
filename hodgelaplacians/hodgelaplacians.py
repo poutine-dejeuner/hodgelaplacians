@@ -1,18 +1,13 @@
-
 from functools import lru_cache
-from scipy.sparse import dok_matrix
-from scipy.sparse import csr_matrix
-from scipy.sparse.linalg import eigs, eigsh
-from scipy.sparse.linalg import norm
-from scipy.sparse import diags
+from warnings import warn
+from itertools import combinations
+
+from scipy.linalg import expm
+from scipy.sparse import dok_matrix, csr_matrix, diags
+from scipy.sparse.linalg import eigsh, norm
 from sympy.combinatorics.permutations import Permutation
 
 import numpy as np
-from scipy.linalg import expm
-
-from warnings import warn
-
-from itertools import combinations
 
 
 class HodgeLaplacians:
@@ -109,30 +104,18 @@ class HodgeLaplacians:
     @lru_cache(maxsize=32)
     def getHodgeLaplacian(self,d):
         if d == 0:
-            B_next = self.getBoundaryOperator(d+1)
-            Bt_next = B_next.transpose()
-            L = B_next.dot(Bt_next)
+            L = self.getHodgeLaplacianUp(d)
         elif d < self.maxdim:
-            B_next = self.getBoundaryOperator(d+1)
-            Bt_next = B_next.transpose()
-            B = self.getBoundaryOperator(d)
-            Bt = B.transpose()
-            L = B_next.dot(Bt_next) + Bt.dot(B)
+            L = self.getHodgeLaplacianUp(d) + self.getHodgeLaplacianDown(d)
         elif d == self.maxdim:
-            B = self.getBoundaryOperator(d)
-            Bt = B.transpose()
-            L = Bt.dot(B)
+            L = self.getHodgeLaplacianDown(d)
         else:
             raise ValueError(f"d should be not greater than {self.maxdim} (maximal dimension simplices)")
         return L
 
     @lru_cache(maxsize=32)
     def getHodgeLaplacianUp(self,d):
-        if d == 0:
-            B_next = self.getBoundaryOperator(d+1)
-            Bt_next = B_next.transpose()
-            L = B_next.dot(Bt_next)
-        elif d < self.maxdim:
+        if 0 <= d < self.maxdim:
             B_next = self.getBoundaryOperator(d+1)
             Bt_next = B_next.transpose()
             L = B_next.dot(Bt_next)
@@ -146,11 +129,7 @@ class HodgeLaplacians:
     def getHodgeLaplacianDown(self,d):
         if d == 0:
             raise ValueError(f"The lower Laplacian in dimension 0 is trivial")
-        elif d < self.maxdim:
-            B = self.getBoundaryOperator(d)
-            Bt = B.transpose()
-            L = Bt.dot(B)
-        elif d == self.maxdim:
+        elif 0 < d <= self.maxdim:
             B = self.getBoundaryOperator(d)
             Bt = B.transpose()
             L = Bt.dot(B)
@@ -233,6 +212,53 @@ class HodgeLaplacians:
         Random walks on simplicial complexes and harmonics
         https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5324709/"""
         pass
+
+class WeightedHodgeLaplacians( HodgeLaplacians ):
+    def __init__(self, weighted_simplices, oriented=True, maxdimension=2):
+        '''
+        weighted_simplices: dict with simplex keys and weight values
+        '''
+        self.oriented = oriented
+        self.simplices = weighted_simplices
+
+    def n_faces(self, n):
+        return {simplex:weight for simplex,weight in self.simplices if len(simplex)==n+1}
+
+    def n_weights(self, n):
+        simplices = self.n_faces(n)
+        if len(simplices) == 0:
+            W = 0
+        else:
+            W = np.array(list(simplices.values()))
+        return W
+
+    @lru_cache(maxsize=32)
+    def getHodgeLaplacianUp(self,d):
+        if 0 <= d < self.maxdim:
+            B_dplus1 = self.getBoundaryOperator(d+1)
+            Bt_dplus1 = B_dplus1.transpose()
+            W_d = diags(self.n_weights(d))
+            W_dplus1inv = diags(self.n_weights(d-1)**(-1))
+            L = B_dplus1 @ W_dplus1inv @ Bt_dplus1 @ W_d
+        elif d == self.maxdim:
+            raise ValueError(f"The upper Laplacian in dimension {self.maxdim} is trivial")
+        else:
+            raise ValueError(f"d should be not greater than {self.maxdim} (maximal dimension simplices)")
+        return L 
+
+    @lru_cache(maxsize=32)
+    def getHodgeLaplacianDown(self,d):
+        if d == 0:
+            raise ValueError(f"The lower Laplacian in dimension 0 is trivial")
+        elif 0 < d <= self.maxdim:
+            B_d = self.getBoundaryOperator(d)
+            Bt_d = B.transpose()
+            W_dminus1 = diags(self.n_weights(d-1))
+            W_dinv = diags(self.n_weights(d)**(-1))
+            L = W_dinv @ Bt_d @ W_dminus1 @ B_d
+        else:
+            raise ValueError(f"d should be not greater than {self.maxdim} (maximal dimension simplices)")
+        return L
 
 def orientation(ordered_nodes):
     sorted_indices = [ordered_nodes.index(i) for i in sorted(ordered_nodes)]
