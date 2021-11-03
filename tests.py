@@ -30,6 +30,13 @@ weighted_simplices = {(1,2,3):3,(1,3,4):3, (1,2):2, (1,3):2, (2,3):2, (1,4):2, (
 whl = WeightedHodgeLaplacians(weighted_simplices)
 assert (whl.simplices == weighted_simplices)
 
+
+
 # weighted simplicial complex from point cloud
-simplices = []
-point_coordinates = []
+N = 600
+dim = 3
+norm = np.random.normal
+normal_deviates = norm(size=(dim, N))
+radius = np.sqrt((normal_deviates**2).sum(axis=0))
+points = normal_deviates/radius
+points = points.transpose()

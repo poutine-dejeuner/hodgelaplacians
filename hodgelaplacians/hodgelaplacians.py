@@ -219,13 +219,28 @@ class WeightedHodgeLaplacians( HodgeLaplacians ):
         weighted_simplices: dict with simplex keys and weight values
         '''
         self.oriented = oriented
-        self.simplices = weighted_simplices
+        self.weighted_simplices = weighted_simplices
+        self.simplices = tuple(self.weighted_simplices.keys())
+        no_vertices = []
+        for simplex in self.simplices:
+            if type(simplex) != tuple:
+                pass
+            else:
+                no_vertices.append(simplex)
+        if no_vertices == []:
+            self.maxdim = 0
+        else:
+            max_simplex_size = max(len(simplex) for simplex in no_vertices)
+        self.maxdim = max_simplex_size - 1
+
+    def n_weighted_faces(self, n):
+        return {simplex:weight for simplex,weight in self.weighted_simplices.items() if len(simplex)==n+1}
 
     def n_faces(self, n):
-        return {simplex:weight for simplex,weight in self.simplices if len(simplex)==n+1}
+        return tuple(simplex for simplex,weight in self.weighted_simplices.items() if len(simplex)==n+1)
 
     def n_weights(self, n):
-        simplices = self.n_faces(n)
+        simplices = self.n_weighted_faces(n)
         if len(simplices) == 0:
             W = 0
         else:
@@ -252,7 +267,7 @@ class WeightedHodgeLaplacians( HodgeLaplacians ):
             raise ValueError(f"The lower Laplacian in dimension 0 is trivial")
         elif 0 < d <= self.maxdim:
             B_d = self.getBoundaryOperator(d)
-            Bt_d = B.transpose()
+            Bt_d = B_d.transpose()
             W_dminus1 = diags(self.n_weights(d-1))
             W_dinv = diags(self.n_weights(d)**(-1))
             L = W_dinv @ Bt_d @ W_dminus1 @ B_d
