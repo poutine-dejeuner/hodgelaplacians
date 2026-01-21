@@ -218,6 +218,8 @@ class WeightedHodgeLaplacians( HodgeLaplacians ):
         '''
         weighted_simplices: dict with simplex keys and weight values
         '''
+        for simplex in weighted_simplices:
+            weighted_simplices[simplex]=np.float64(weighted_simplices[simplex])
         self.oriented = oriented
         self.weighted_simplices = weighted_simplices
         self.simplices = tuple(self.weighted_simplices.keys())
@@ -253,7 +255,7 @@ class WeightedHodgeLaplacians( HodgeLaplacians ):
             B_dplus1 = self.getBoundaryOperator(d+1)
             Bt_dplus1 = B_dplus1.transpose()
             W_d = diags(self.n_weights(d))
-            W_dplus1inv = diags(self.n_weights(d-1)**(-1))
+            W_dplus1inv = diags(self.n_weights(d+1)**(-1))
             L = B_dplus1 @ W_dplus1inv @ Bt_dplus1 @ W_d
         elif d == self.maxdim:
             raise ValueError(f"The upper Laplacian in dimension {self.maxdim} is trivial")
